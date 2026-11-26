@@ -1,4 +1,4 @@
-[gd_scene load_steps=37 format=4 uid="uid://dkaf0otbgtrp5"]
+[gd_scene load_steps=41 format=4 uid="uid://dkaf0otbgtrp5"]
 
 [ext_resource type="Texture2D" uid="uid://b1cmu3aai85qc" path="res://graphics/tilesets/grass.png" id="1_bovvr"]
 [ext_resource type="Script" uid="uid://crdbsib38ohef" path="res://scenes/levels/level.gd" id="1_urvlt"]
@@ -21,6 +21,10 @@
 [ext_resource type="Texture2D" uid="uid://fnmyohadow27" path="res://graphics/icons/delete.png" id="18_qhnmj"]
 [ext_resource type="AudioStream" uid="uid://cmmksm2j2lpov" path="res://audio/music.mp3" id="20_4ab0e"]
 [ext_resource type="AudioStream" uid="uid://cpi4s4v86b026" path="res://audio/rain.mp3" id="21_p62il"]
+[ext_resource type="PackedScene" path="res://scenes/objects/shipping_bin.tscn" id="22_ship"]
+[ext_resource type="PackedScene" path="res://scenes/ui/shipping_bin_ui.tscn" id="23_shipui"]
+[ext_resource type="PackedScene" path="res://scenes/ui/status_hud.tscn" id="24_hud"]
+[ext_resource type="PackedScene" path="res://scenes/ui/day_summary_ui.tscn" id="25_summary"]
 
 [sub_resource type="Gradient" id="Gradient_ouxo3"]
 offsets = PackedFloat32Array(0, 0.294849, 0.4777975, 1)
@@ -1225,6 +1229,9 @@ random = false
 [node name="House" parent="Objects" instance=ExtResource("10_qogh7")]
 position = Vector2(232, 224)
 
+[node name="ShippingBin" parent="Objects" instance=ExtResource("22_ship")]
+position = Vector2(280, 256)
+
 [node name="Character" parent="Objects" instance=ExtResource("11_mq31s")]
 position = Vector2(524, 177)
 dialog = Array[String](["I am the hat mouse", "State your business!"])
@@ -1262,6 +1269,12 @@ color = Color(0.024549603, 0.024549605, 0.024549602, 1)
 [node name="ShopUI" parent="Overlay/CanvasLayer" instance=ExtResource("16_qhnmj")]
 
 [node name="ResourceUI" parent="Overlay/CanvasLayer" instance=ExtResource("17_jyre1")]
+
+[node name="StatusHUD" parent="Overlay/CanvasLayer" instance=ExtResource("24_hud")]
+
+[node name="ShippingBinUI" parent="Overlay/CanvasLayer" instance=ExtResource("23_shipui")]
+
+[node name="DaySummaryUI" parent="Overlay/CanvasLayer" instance=ExtResource("25_summary")]
 
 [node name="RainDropsParticles" type="GPUParticles2D" parent="Overlay"]
 material = SubResource("CanvasItemMaterial_qogh7")
@@ -1338,4 +1351,5 @@ volume_db = -20.0
 [connection signal="machine_change" from="Objects/Player" to="." method="_on_player_machine_change"]
 [connection signal="tool_use" from="Objects/Player" to="." method="_on_player_tool_use"]
 [connection signal="close" from="Overlay/CanvasLayer/ShopUI" to="." method="_on_player_close_shop"]
+[connection signal="close" from="Overlay/CanvasLayer/ShippingBinUI" to="." method="_on_shipping_bin_close"]
 [connection signal="timeout" from="Timers/BlobTimer" to="." method="_on_blob_timer_timeout"]
