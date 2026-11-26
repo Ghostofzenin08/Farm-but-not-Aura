@@ -97,9 +97,26 @@ const TOOL_STATE_ANIMATIONS = {
 	Enum.Tool.SEED: 'Seed',
 	}
 
+const ITEM_PRICES = {
+	Enum.Item.WOOD: 2,
+	Enum.Item.APPLE: 5,
+	Enum.Item.TOMATO: 8,
+	Enum.Item.WHEAT: 10,
+	Enum.Item.CORN: 12,
+	Enum.Item.PUMPKIN: 25,
+	Enum.Item.FISH: 15,
+}
+
+var gold: int = 50
+var day: int = 1
+var shipped_items: Dictionary = {}
+
+signal gold_changed(new_gold: int)
+signal day_changed(new_day: int)
+
 var forecast_rain: bool
 var unlocked_styles: Array = [Enum.Style.BASIC, Enum.Style.ENGLISH]
-var unlocked_machines: Array = [Enum.Machine.DELETE, Enum.Machine.SPRINKLER, Enum.Machine.FISHER, Enum.Machine.SCARECROW]
+var unlocked_machines: Array = [Enum.Machine.DELETE]
 var shop_connection = {
 	Enum.Shop.HAT: {'tracker': unlocked_styles, 'all': STYLE_UPGRADES.keys()},
 	Enum.Shop.MAIN: {'tracker': unlocked_machines, 'all': MACHINE_UPGRADE_COST.keys()},
@@ -115,4 +132,51 @@ var items = {
 
 func change_item(item: Enum.Item, amount: int = 1, auto_hide: bool = true):
 	items[item] += amount
-	get_tree().get_first_node_in_group("ResourceUI").reveal(auto_hide)
+	var resource_ui = get_tree().get_first_node_in_group("ResourceUI")
+	if resource_ui:
+		resource_ui.reveal(auto_hide)
+
+func change_gold(amount: int) -> void:
+	gold = max(0, gold + amount)
+	gold_changed.emit(gold)
+
+func set_day(new_day: int) -> void:
+	day = new_day
+	day_changed.emit(day)
+
+func deposit_shipping_item(item: Enum.Item, amount: int = 1) -> bool:
+	if items.get(item, 0) < amount or amount <= 0:
+		return false
+	change_item(item, -amount, false)
+	shipped_items[item] = shipped_items.get(item, 0) + amount
+	return true
+
+func cancel_shipping_item(item: Enum.Item, amount: int = 1) -> bool:
+	if shipped_items.get(item, 0) < amount or amount <= 0:
+		return false
+	shipped_items[item] -= amount
+	if shipped_items[item] <= 0:
+		shipped_items.erase(item)
+	change_item(item, amount, false)
+	return true
+
+func settle_daily_shipment() -> Dictionary:
+	var total_payout: int = 0
+	var breakdown: Dictionary = {}
+	for item_enum in shipped_items.keys():
+		var count: int = shipped_items[item_enum]
+		var unit_price: int = ITEM_PRICES.get(item_enum, 1)
+		var subtotal: int = count * unit_price
+		total_payout += subtotal
+		breakdown[item_enum] = {
+			"count": count,
+			"unit_price": unit_price,
+			"subtotal": subtotal
+		}
+	change_gold(total_payout)
+	shipped_items.clear()
+	return {
+		"total": total_payout,
+		"breakdown": breakdown,
+		"current_gold": gold
+	}
