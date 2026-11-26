@@ -13,6 +13,14 @@ var current_style: Enum.Style
 var current_style_index: int
 var current_machine: Enum.Machine
 var current_machine_index: int
+const TOOL_ENERGY_COSTS = {
+	Enum.Tool.HOE: 2.0,
+	Enum.Tool.WATER: 1.0,
+	Enum.Tool.AXE: 2.5,
+	Enum.Tool.SWORD: 1.5,
+	Enum.Tool.FISH: 3.0,
+	Enum.Tool.SEED: 0.5,
+}
 @onready var tool_sounds = {
 	Enum.Tool.AXE: $Sounds/Axe,
 	Enum.Tool.SWORD: $Sounds/Axe,
@@ -70,8 +78,16 @@ func get_basic_input():
 		if collider and collider.has_method("interact"):
 			collider.interact(self)
 		else:
+			if Data.energy <= 0.0 and (current_tool == Enum.Tool.AXE or current_tool == Enum.Tool.HOE):
+				var resource_ui = get_tree().get_first_node_in_group("ResourceUI")
+				if resource_ui:
+					resource_ui.reveal(true)
+				return
 			tool_state_machine.travel(Data.TOOL_STATE_ANIMATIONS[current_tool])
 			$Animation/AnimationTree.set("parameters/ToolOneShot/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
+	
+	if Input.is_action_just_pressed("eat"):
+		eat_apple()
 	
 	if Input.is_action_just_pressed("diagnose"):
 		diagnose.emit()
@@ -114,7 +130,8 @@ func get_shopping_input():
 
 func move():
 	direction = Input.get_vector("left", "right", "up", "down")
-	velocity = direction * speed
+	var current_speed = speed * 0.55 if Data.energy <= 0.0 else speed
+	velocity = direction * current_speed
 	move_and_slide()
 
 
@@ -145,8 +162,18 @@ func stop_fishing():
 
 
 func tool_use_emit():
+	var cost = TOOL_ENERGY_COSTS.get(current_tool, 1.0)
+	Data.change_energy(-cost)
 	tool_use.emit(current_tool, position + last_direction * 16 + Vector2(0,4))
 	tool_sounds[current_tool].play()
+
+
+func eat_apple() -> bool:
+	if Data.items.get(Enum.Item.APPLE, 0) > 0 and Data.energy < Data.max_energy:
+		Data.change_item(Enum.Item.APPLE, -1)
+		Data.change_energy(25.0)
+		return true
+	return false
 
 
 func _on_animation_tree_animation_started(_anim_name: StringName) -> void:
