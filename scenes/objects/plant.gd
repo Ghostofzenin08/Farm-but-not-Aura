@@ -16,6 +16,8 @@ func setup(grid_coord: Vector2i, parent: Node2D, new_res: PlantResource, plant_d
 
 func update():
 	if res.death_count >= res.death_max:
+		death.emit(coord)
+		res.dead = true
 		queue_free()
 
 
@@ -26,12 +28,14 @@ func grow(watered: bool):
 		res.decay(self)
 
 
-func _on_collision_area_body_entered(_body: Node2D) -> void:
-	if res.get_complete():
-		Data.change_item(res.reward, randi_range(2,4))
-		$FlashSprite2D.flash(0.2, 0.4, queue_free)
-		death.emit(coord)
+func _on_collision_area_body_entered(body: Node2D) -> void:
+	if not body.is_in_group("Player"):
+		return
+	if res.get_complete() and not res.dead:
 		res.dead = true
+		Data.change_item(res.reward, randi_range(2,4))
+		death.emit(coord)
+		$FlashSprite2D.flash(0.2, 0.4, queue_free)
 
 
 func damage():
