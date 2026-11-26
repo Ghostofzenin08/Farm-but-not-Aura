@@ -1290,7 +1290,7 @@ texture = ExtResource("18_qhnmj")
 [node name="Timers" type="Node" parent="."]
 
 [node name="DayTimer" type="Timer" parent="Timers"]
-wait_time = 180.0
+wait_time = 450.0
 one_shot = true
 autostart = true
 
