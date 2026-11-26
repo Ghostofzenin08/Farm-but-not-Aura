@@ -1,4 +1,4 @@
-[gd_scene load_steps=41 format=4 uid="uid://dkaf0otbgtrp5"]
+[gd_scene load_steps=43 format=4 uid="uid://dkaf0otbgtrp5"]
 
 [ext_resource type="Texture2D" uid="uid://b1cmu3aai85qc" path="res://graphics/tilesets/grass.png" id="1_bovvr"]
 [ext_resource type="Script" uid="uid://crdbsib38ohef" path="res://scenes/levels/level.gd" id="1_urvlt"]
@@ -25,6 +25,8 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/shipping_bin_ui.tscn" id="23_shipui"]
 [ext_resource type="PackedScene" path="res://scenes/ui/status_hud.tscn" id="24_hud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/day_summary_ui.tscn" id="25_summary"]
+[ext_resource type="Texture2D" path="res://graphics/characters/woman.png" id="26_woman"]
+[ext_resource type="PackedScene" path="res://scenes/ui/seed_shop_ui.tscn" id="27_seedui"]
 
 [sub_resource type="Gradient" id="Gradient_ouxo3"]
 offsets = PackedFloat32Array(0, 0.294849, 0.4777975, 1)
@@ -1246,6 +1248,13 @@ dialog = Array[String](["I sell machines! ", "What would you like?"])
 fin_dialog = "Well done! :)"
 texture = ExtResource("13_qhnmj")
 
+[node name="Character3" parent="Objects" instance=ExtResource("11_mq31s")]
+position = Vector2(340, 240)
+dialog = Array[String](["Welcome to the farm shop!", "Need more seeds to grow your harvest?"])
+fin_dialog = "Keep growing strong!"
+texture = ExtResource("26_woman")
+shop_type = 2
+
 [node name="Overlay" type="Node2D" parent="."]
 metadata/_edit_lock_ = true
 metadata/_edit_group_ = true
@@ -1275,6 +1284,8 @@ color = Color(0.024549603, 0.024549605, 0.024549602, 1)
 [node name="ShippingBinUI" parent="Overlay/CanvasLayer" instance=ExtResource("23_shipui")]
 
 [node name="DaySummaryUI" parent="Overlay/CanvasLayer" instance=ExtResource("25_summary")]
+
+[node name="SeedShopUI" parent="Overlay/CanvasLayer" instance=ExtResource("27_seedui")]
 
 [node name="RainDropsParticles" type="GPUParticles2D" parent="Overlay"]
 material = SubResource("CanvasItemMaterial_qogh7")
@@ -1352,4 +1363,5 @@ volume_db = -20.0
 [connection signal="tool_use" from="Objects/Player" to="." method="_on_player_tool_use"]
 [connection signal="close" from="Overlay/CanvasLayer/ShopUI" to="." method="_on_player_close_shop"]
 [connection signal="close" from="Overlay/CanvasLayer/ShippingBinUI" to="." method="_on_shipping_bin_close"]
+[connection signal="close" from="Overlay/CanvasLayer/SeedShopUI" to="." method="_on_seed_shop_close"]
 [connection signal="timeout" from="Timers/BlobTimer" to="." method="_on_blob_timer_timeout"]
