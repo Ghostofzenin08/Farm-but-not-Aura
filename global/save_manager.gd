@@ -24,6 +24,8 @@ func save_game(level: Node2D) -> bool:
 		"data": {
 			"day": Data.day,
 			"gold": Data.gold,
+			"energy": Data.energy,
+			"max_energy": Data.max_energy,
 			"forecast_rain": Data.forecast_rain,
 			"unlocked_styles": Data.unlocked_styles.duplicate(),
 			"unlocked_machines": Data.unlocked_machines.duplicate(),
@@ -142,6 +144,9 @@ func load_game(level: Node2D) -> bool:
 	Data.set_day(int(g_data.get("day", 1)))
 	Data.gold = int(g_data.get("gold", 50))
 	Data.gold_changed.emit(Data.gold)
+	Data.energy = float(g_data.get("energy", 100.0))
+	Data.max_energy = float(g_data.get("max_energy", 100.0))
+	Data.energy_changed.emit(Data.energy, Data.max_energy)
 	Data.forecast_rain = bool(g_data.get("forecast_rain", false))
 	
 	if g_data.has("unlocked_styles"):
