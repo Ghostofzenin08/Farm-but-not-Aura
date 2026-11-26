@@ -107,6 +107,14 @@ const ITEM_PRICES = {
 	Enum.Item.FISH: 15,
 }
 
+const SEED_BUY_PRICES = {
+	Enum.Item.TOMATO: 4,
+	Enum.Item.WHEAT: 5,
+	Enum.Item.CORN: 6,
+	Enum.Item.PUMPKIN: 12,
+	Enum.Item.APPLE: 3,
+}
+
 var gold: int = 50
 var day: int = 1
 var shipped_items: Dictionary = {}
@@ -150,6 +158,15 @@ func set_day(new_day: int) -> void:
 func change_energy(amount: float) -> void:
 	energy = clampf(energy + amount, 0.0, max_energy)
 	energy_changed.emit(energy, max_energy)
+
+func buy_seed(item: Enum.Item, count: int = 1) -> bool:
+	var unit_price: int = SEED_BUY_PRICES.get(item, 0)
+	var total_cost: int = unit_price * count
+	if unit_price <= 0 or gold < total_cost or count <= 0:
+		return false
+	change_gold(-total_cost)
+	change_item(item, count, false)
+	return true
 
 func deposit_shipping_item(item: Enum.Item, amount: int = 1) -> bool:
 	if items.get(item, 0) < amount or amount <= 0:
