@@ -19,6 +19,10 @@ func run_all() -> bool:
 		all_passed = false
 	if not test_save_load_roundtrip():
 		all_passed = false
+	if not test_machine_placement_validation():
+		all_passed = false
+	if not test_stamina_energy_and_eating():
+		all_passed = false
 		
 	return all_passed
 
@@ -187,6 +191,7 @@ func test_save_load_roundtrip() -> bool:
 	# Set known game state
 	Data.set_day(4)
 	Data.gold = 350
+	Data.energy = 72.0
 	Data.items[Enum.Item.APPLE] = 12
 	Data.items[Enum.Item.WOOD] = 40
 	Data.deposit_shipping_item(Enum.Item.APPLE, 2)
@@ -211,6 +216,7 @@ func test_save_load_roundtrip() -> bool:
 	# Corrupt/mutate memory state
 	Data.set_day(99)
 	Data.gold = 0
+	Data.energy = 0.0
 	Data.items[Enum.Item.APPLE] = 0
 	Data.items[Enum.Item.WOOD] = 0
 	Data.shipped_items.clear()
@@ -233,6 +239,11 @@ func test_save_load_roundtrip() -> bool:
 		level.free()
 		return false
 		
+	if Data.energy != 72.0:
+		print("FAILED: Energy not restored. Expected 72.0, got: ", Data.energy)
+		level.free()
+		return false
+		
 	if Data.items[Enum.Item.APPLE] != 10:
 		print("FAILED: Apple inventory expected 10 (12 - 2 shipped), got: ", Data.items[Enum.Item.APPLE])
 		level.free()
@@ -252,4 +263,77 @@ func test_save_load_roundtrip() -> bool:
 	SaveManager.delete_save()
 	level.free()
 	print("PASSED: SaveManager saved and restored day, gold, bag, shipping bin, and farm soil perfectly.")
+	return true
+
+
+func test_machine_placement_validation() -> bool:
+	print("\n[TEST AUTOMATION 7] Machine Placement Validation & Previews...")
+	var level_scene = load("res://scenes/levels/level.tscn")
+	var level = level_scene.instantiate()
+	add_child(level)
+	
+	var test_coord = Vector2i(20, 20)
+	var can_del = level.can_build_machine(Enum.Machine.DELETE, test_coord)
+	if can_del:
+		print("FAILED: DELETE should be invalid when no machine exists on tile.")
+		level.free()
+		return false
+	
+	# Place sprinkler on test_coord
+	var sprinkler_scene = load("res://scenes/machines/sprinkler.tscn")
+	var sprinkler = sprinkler_scene.instantiate()
+	sprinkler.setup(test_coord * Data.TILE_SIZE, level, level.get_node("Objects"))
+	
+	# Now duplicate placement should be blocked
+	var can_stack = level.can_build_machine(Enum.Machine.SPRINKLER, test_coord)
+	if can_stack:
+		print("FAILED: can_build_machine allowed stacking duplicate machine on tile.")
+		level.free()
+		return false
+		
+	# Now delete should be valid
+	var can_del_valid = level.can_build_machine(Enum.Machine.DELETE, test_coord)
+	if not can_del_valid:
+		print("FAILED: DELETE should be valid when a machine exists on tile.")
+		level.free()
+		return false
+		
+	level.free()
+	print("PASSED: Machine placement validation prevents stacking and correctly validates removal.")
+	return true
+
+
+func test_stamina_energy_and_eating() -> bool:
+	print("\n[TEST STAMINA 8] Stamina Energy Consumption and Apple Eating...")
+	Data.energy = 60.0
+	Data.items[Enum.Item.APPLE] = 3
+	
+	# Deduct energy for tool use
+	Data.change_energy(-15.0)
+	if Data.energy != 45.0:
+		print("FAILED: Energy expected 45.0, got: ", Data.energy)
+		return false
+		
+	var player_scene = load("res://scenes/characters/player.tscn")
+	var player = player_scene.instantiate()
+	add_child(player)
+	
+	var ate = player.eat_apple()
+	if not ate:
+		print("FAILED: eat_apple returned false.")
+		player.free()
+		return false
+		
+	if Data.items[Enum.Item.APPLE] != 2:
+		print("FAILED: Apple count expected 2, got: ", Data.items[Enum.Item.APPLE])
+		player.free()
+		return false
+		
+	if Data.energy != 70.0:
+		print("FAILED: Energy expected 70.0 after eating, got: ", Data.energy)
+		player.free()
+		return false
+		
+	player.free()
+	print("PASSED: Stamina deducts on tool use and recovers 25.0 energy when eating an apple.")
 	return true
