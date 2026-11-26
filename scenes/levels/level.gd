@@ -158,6 +158,10 @@ func _ready() -> void:
 	var shipping_bin = $Objects.get_node_or_null("ShippingBin")
 	if shipping_bin and not shipping_bin.open_shipping_bin.is_connected(open_shipping_bin):
 		shipping_bin.open_shipping_bin.connect(open_shipping_bin)
+	
+	var seed_ui = $Overlay/CanvasLayer.get_node_or_null("SeedShopUI")
+	if seed_ui and not seed_ui.close.is_connected(_on_seed_shop_close):
+		seed_ui.close.connect(_on_seed_shop_close)
 
 
 func _process(_delta: float) -> void:
@@ -251,5 +255,22 @@ func _on_blob_timer_timeout() -> void:
 
 
 func open_shop(shop_type: Enum.Shop):
-	$Overlay/CanvasLayer/ShopUI.reveal(shop_type)
-	player.current_state = Enum.State.SHOP
+	if shop_type == Enum.Shop.SEED:
+		open_seed_shop()
+	else:
+		$Overlay/CanvasLayer/ShopUI.reveal(shop_type)
+		player.current_state = Enum.State.SHOP
+
+
+func open_seed_shop():
+	var seed_ui = $Overlay/CanvasLayer.get_node_or_null("SeedShopUI")
+	if seed_ui:
+		seed_ui.reveal()
+		player.current_state = Enum.State.SHOP
+
+
+func _on_seed_shop_close():
+	var seed_ui = $Overlay/CanvasLayer.get_node_or_null("SeedShopUI")
+	if seed_ui:
+		seed_ui.hide()
+	player.current_state = Enum.State.DEFAULT
