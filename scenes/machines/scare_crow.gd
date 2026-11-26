@@ -10,15 +10,16 @@ func setup(pos: Vector2i, level: Node2D, parent: Node2D):
 
 func _on_timer_timeout() -> void:
 	var blobs = get_tree().get_nodes_in_group("Blobs")
-	if blobs:
-		var nearest_blob = get_nearest_blob(blobs)
-		if nearest_blob.position.distance_to(position) < max_range:
+	var valid_blobs = blobs.filter(func(b): return is_instance_valid(b) and b.get("active") != false)
+	if valid_blobs:
+		var nearest_blob = get_nearest_blob(valid_blobs)
+		if is_instance_valid(nearest_blob) and nearest_blob.position.distance_to(position) < max_range:
 			shoot_projectile.emit(position, (nearest_blob.position - position).normalized())
 
 
 func get_nearest_blob(blobs: Array) -> CharacterBody2D:
 	var nearest = blobs[0]
 	for blob in blobs:
-		if blob.position.distance_to(position) <= nearest.position.distance_to(position):
+		if is_instance_valid(blob) and blob.position.distance_to(position) <= nearest.position.distance_to(position):
 			nearest = blob
 	return nearest
