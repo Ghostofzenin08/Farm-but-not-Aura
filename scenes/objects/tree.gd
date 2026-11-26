@@ -42,9 +42,24 @@ func get_apple():
 		Data.change_item(Enum.Item.APPLE)
 
 
+var regrow_days := 0
+
 func reset():
 	if health > 0:
 		for apple in $Apples.get_children():
 			apple.queue_free()
 		create_apples(randi_range(0,3))
 		health = 3
+	else:
+		regrow_days += 1
+		if regrow_days >= 2:
+			regrow_days = 0
+			health = 3
+			$FlashSprite2D.show()
+			$Stump.hide()
+			var shape = CapsuleShape2D.new()
+			shape.radius = 4
+			shape.height = 14
+			$CollisionShape2D.shape = shape
+			$CollisionShape2D.position = Vector2(0, 4)
+			create_apples(randi_range(0,2))
