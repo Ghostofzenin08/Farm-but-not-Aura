@@ -8,14 +8,17 @@ const ANIMATIONS = {
 var direction := Vector2i.DOWN
 
 func setup(pos: Vector2i, level: Node2D, parent: Node2D):
-	var grass_layer = level.get_node("Layers/GrassLayer") as TileMapLayer
-	var adjusted_coord = pos / Data.TILE_SIZE
-	adjusted_coord.x += -1 if pos.x < 0 else 0
-	adjusted_coord.y += -1 if pos.y < 0 else 0
+	var grass_layer = level.get_node_or_null("Layers/GrassLayer") as TileMapLayer
+	if not grass_layer:
+		queue_free()
+		return
+	var adjusted_coord = Vector2i(floor(float(pos.x) / Data.TILE_SIZE), floor(float(pos.y) / Data.TILE_SIZE))
 	var tile_data = grass_layer.get_cell_tile_data(adjusted_coord) as TileData
-	if tile_data.get_custom_data('coast'):
+	if tile_data and tile_data.get_custom_data('coast'):
 		direction = tile_data.get_custom_data('coast')
 		super.setup(pos, level, parent)
+	else:
+		queue_free()
 
 
 func _ready() -> void:
@@ -28,7 +31,7 @@ func _process(_delta: float) -> void:
 
 
 func _on_timer_timeout() -> void:
-	#Data.change_item(Enum.Item.FISH)
+	Data.change_item(Enum.Item.FISH)
 	start_fishing()
 
 
