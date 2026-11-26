@@ -21,7 +21,9 @@ func setup(start_pos, target, parent):
 
 
 func _physics_process(_delta: float) -> void:
-	if plant_target:
+	if not active:
+		return
+	if is_instance_valid(plant_target):
 		direction = (plant_target.position - position).normalized()
 		velocity = direction * speed + push_direction
 		move_and_slide()
@@ -30,7 +32,11 @@ func _physics_process(_delta: float) -> void:
 			active = false
 			death()
 	else:
-		death()
+		var plants = get_tree().get_nodes_in_group('Plants')
+		if plants:
+			plant_target = plants.pick_random()
+		else:
+			death()
 
 
 func push(dir = Vector2.ZERO):
@@ -42,11 +48,16 @@ func push(dir = Vector2.ZERO):
 
 
 func death():
+	active = false
 	speed = 0
-	$AnimationPlayer.current_animation = 'explode'
+	remove_from_group("Blobs")
+	remove_from_group("Objects")
+	$AnimationPlayer.play("explode")
 
 
 func hit(tool: Enum.Tool, dir = Vector2.ZERO):
+	if not active or health <= 0:
+		return
 	if tool == Enum.Tool.SWORD:
 		$FlashSprite2D.flash()
 		push(dir)
