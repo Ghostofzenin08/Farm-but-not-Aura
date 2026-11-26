@@ -33,3 +33,6 @@ func randomize():
 		size = randi_range(0, sprite.hframes - 1)
 		style = [0,1].pick_random()
 		_update_sprite()
+
+func hit(_tool: Enum.Tool) -> void:
+	pass
