@@ -80,13 +80,41 @@ func _on_player_day_change() -> void:
 	day_restart()
 
 
+func can_build_machine(m_type: int, tile: Vector2i) -> bool:
+	if m_type == Enum.Machine.DELETE:
+		for machine in get_tree().get_nodes_in_group('Machines'):
+			if is_instance_valid(machine) and machine.get("coord") == tile:
+				return true
+		return false
+	
+	for existing in get_tree().get_nodes_in_group('Machines'):
+		if is_instance_valid(existing) and existing.get("coord") == tile:
+			return false
+	
+	var grass_layer = $Layers/GrassLayer as TileMapLayer
+	if not grass_layer:
+		return false
+	var tile_data = grass_layer.get_cell_tile_data(tile) as TileData
+	
+	match m_type:
+		Enum.Machine.FISHER:
+			return tile_data != null and tile_data.get_custom_data('coast') != null and tile_data.get_custom_data('coast') != Vector2i.ZERO
+		Enum.Machine.SPRINKLER, Enum.Machine.SCARECROW:
+			if not tile_data:
+				return false
+			var water_layer = $Layers/WaterLayer as TileMapLayer
+			if water_layer and water_layer.get_cell_tile_data(tile) != null:
+				return false
+			return true
+	return false
+
+
 func _on_player_build(current_machine: int) -> void:
 	var machine_pos = player.get_machine_coord()
 	var machine_tile = Vector2i(floor(float(machine_pos.x) / Data.TILE_SIZE), floor(float(machine_pos.y) / Data.TILE_SIZE))
+	if not can_build_machine(current_machine, machine_tile):
+		return
 	if current_machine != Enum.Machine.DELETE:
-		for existing in get_tree().get_nodes_in_group('Machines'):
-			if is_instance_valid(existing) and existing.get("coord") == machine_tile:
-				return
 		var machine = machine_scenes[current_machine].instantiate()
 		machine.setup(machine_pos, self, $Objects)
 	else:
@@ -139,8 +167,14 @@ func _process(_delta: float) -> void:
 	$Overlay/DayTimeColor.color = color
 	
 	# machine preview 
-	$Overlay/MachinePreviewSprite.visible = player.current_state == Enum.State.BUILDING
-	$Overlay/MachinePreviewSprite.position = player.get_machine_coord() + MACHINE_PREVIEW_TEXTURES[player.current_machine]['offset']
+	var is_building = player.current_state == Enum.State.BUILDING
+	$Overlay/MachinePreviewSprite.visible = is_building
+	if is_building:
+		var machine_pos = player.get_machine_coord()
+		var machine_tile = Vector2i(floor(float(machine_pos.x) / Data.TILE_SIZE), floor(float(machine_pos.y) / Data.TILE_SIZE))
+		$Overlay/MachinePreviewSprite.position = machine_pos + MACHINE_PREVIEW_TEXTURES[player.current_machine]['offset']
+		var is_valid = can_build_machine(player.current_machine, machine_tile)
+		$Overlay/MachinePreviewSprite.modulate = Color(0.4, 1.0, 0.4, 0.85) if is_valid else Color(1.0, 0.3, 0.3, 0.85)
 
 func day_restart():
 	var tween = create_tween()
@@ -165,6 +199,7 @@ func day_restart():
 
 
 func level_reset():
+	Data.change_energy(Data.max_energy)
 	for plant in get_tree().get_nodes_in_group('Plants'):
 		plant.grow(plant.coord in $Layers/SoilWaterLayer.get_used_cells())
 	$Layers/SoilWaterLayer.clear()
