@@ -29,9 +29,7 @@ const MACHINE_PREVIEW_TEXTURES = {
 
 
 func _on_player_tool_use(tool: Enum.Tool, pos: Vector2) -> void:
-	var grid_coord: Vector2i = Vector2i(int(pos.x / Data.TILE_SIZE),int(pos.y / Data.TILE_SIZE))
-	grid_coord.x += -1 if pos.x < 0 else 0
-	grid_coord.y += -1 if pos.y < 0 else 0
+	var grid_coord: Vector2i = Vector2i(floor(pos.x / float(Data.TILE_SIZE)), floor(pos.y / float(Data.TILE_SIZE)))
 	var has_soil = grid_coord in $Layers/SoilLayer.get_used_cells()
 	match tool:
 		Enum.Tool.HOE:
@@ -56,7 +54,7 @@ func _on_player_tool_use(tool: Enum.Tool, pos: Vector2) -> void:
 				}[player.current_seed]
 				
 				if Data.items[selected_item] > 0:
-					#Data.change_item(selected_item, -1)
+					Data.change_item(selected_item, -1)
 					var plant_res = PlantResource.new()
 					plant_res.setup($Objects/Player.current_seed, selected_item)
 					var plant = plant_scene.instantiate()
@@ -69,8 +67,9 @@ func _on_player_tool_use(tool: Enum.Tool, pos: Vector2) -> void:
 				
 		Enum.Tool.AXE, Enum.Tool.SWORD:
 			for object in get_tree().get_nodes_in_group('Objects'):
-				if object.position.distance_to(pos) < 20:
-					object.hit(tool)
+				if is_instance_valid(object) and object.position.distance_to(pos) < 20:
+					if object.has_method("hit"):
+						object.hit(tool)
 
 
 func _on_player_diagnose() -> void:
@@ -82,12 +81,18 @@ func _on_player_day_change() -> void:
 
 
 func _on_player_build(current_machine: int) -> void:
+	var machine_pos = player.get_machine_coord()
+	var machine_tile = Vector2i(floor(float(machine_pos.x) / Data.TILE_SIZE), floor(float(machine_pos.y) / Data.TILE_SIZE))
 	if current_machine != Enum.Machine.DELETE:
+		for existing in get_tree().get_nodes_in_group('Machines'):
+			if is_instance_valid(existing) and existing.get("coord") == machine_tile:
+				return
 		var machine = machine_scenes[current_machine].instantiate()
-		machine.setup(player.get_machine_coord(), self, $Objects)
+		machine.setup(machine_pos, self, $Objects)
 	else:
 		for machine in get_tree().get_nodes_in_group('Machines'):
-			machine.delete(player.get_machine_coord() / 16)
+			if is_instance_valid(machine):
+				machine.delete(machine_tile)
 
 
 func _on_player_machine_change(current_machine: int) -> void:
@@ -99,10 +104,32 @@ func _on_player_close_shop() -> void:
 	player.current_state = Enum.State.DEFAULT
 
 
+func open_shipping_bin() -> void:
+	var shipping_ui = $Overlay/CanvasLayer.get_node_or_null("ShippingBinUI")
+	if shipping_ui:
+		shipping_ui.reveal()
+		player.current_state = Enum.State.SHOP
+
+
+func _on_shipping_bin_close() -> void:
+	var shipping_ui = $Overlay/CanvasLayer.get_node_or_null("ShippingBinUI")
+	if shipping_ui:
+		shipping_ui.hide()
+	player.current_state = Enum.State.DEFAULT
+
+
 func _ready() -> void:
-	Data.forecast_rain = [true, false].pick_random()
+	$Timers/DayTimer.timeout.connect(day_restart)
+	if SaveManager.has_save():
+		SaveManager.load_game(self)
+	else:
+		Data.forecast_rain = [true, false].pick_random()
 	for character in get_tree().get_nodes_in_group('Characters'):
 		character.connect('open_shop', open_shop)
+	
+	var shipping_bin = $Objects.get_node_or_null("ShippingBin")
+	if shipping_bin and not shipping_bin.open_shipping_bin.is_connected(open_shipping_bin):
+		shipping_bin.open_shipping_bin.connect(open_shipping_bin)
 
 
 func _process(_delta: float) -> void:
@@ -118,9 +145,23 @@ func _process(_delta: float) -> void:
 func day_restart():
 	var tween = create_tween()
 	tween.tween_property(day_transition_material, "shader_parameter/progress", 1.0, 1.0)
-	tween.tween_interval(0.5)
-	tween.tween_callback(level_reset)
-	tween.tween_property(day_transition_material, "shader_parameter/progress", 0.0, 1.0)
+	await tween.finished
+	
+	var settlement = Data.settle_daily_shipment()
+	Data.set_day(Data.day + 1)
+	level_reset()
+	SaveManager.save_game(self)
+	
+	if settlement.get("total", 0) > 0:
+		var summary = $Overlay/CanvasLayer.get_node_or_null("DaySummaryUI")
+		if summary:
+			player.current_state = Enum.State.SHOP
+			summary.display_summary(settlement, Data.day)
+			await summary.confirmed
+			player.current_state = Enum.State.DEFAULT
+	
+	var fade_in = create_tween()
+	fade_in.tween_property(day_transition_material, "shader_parameter/progress", 0.0, 1.0)
 
 
 func level_reset():
@@ -130,8 +171,11 @@ func level_reset():
 	$Overlay/CanvasLayer/PlantInfoContainer.update_all()
 	
 	$Timers/DayTimer.start()
+	for blob in get_tree().get_nodes_in_group('Blobs'):
+		if is_instance_valid(blob):
+			blob.queue_free()
 	for object in get_tree().get_nodes_in_group('Objects'):
-		if 'reset' in object:
+		if is_instance_valid(object) and 'reset' in object:
 			object.reset()
 
 	raining = Data.forecast_rain
