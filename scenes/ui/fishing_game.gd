@@ -34,6 +34,10 @@ func _process(delta: float) -> void:
 
 func reveal():
 	show()
+	progress = 30.0
+	$Control/TextureProgressBar.value = progress
+	velocity = 0.0
+	$BarSprite.position.y = 0.0
 	$FishSprite.position.y = randf_range(-y_range / 2.0, y_range / 2.0)
 	fish_velocity = randf_range(-20,20)
 
@@ -50,5 +54,7 @@ func _on_fish_update_timer_timeout() -> void:
 func _on_texture_progress_bar_value_changed(value: float) -> void:
 	if value <= 0 or value >= 100:
 		hide()
-		Data.change_item(Enum.Item.FISH, 1 if value >= 100 else 0)
-		get_parent().stop_fishing()
+		if value >= 100:
+			Data.change_item(Enum.Item.FISH, 1)
+		if get_parent() and get_parent().has_method("stop_fishing"):
+			get_parent().stop_fishing()
