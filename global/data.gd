@@ -110,9 +110,12 @@ const ITEM_PRICES = {
 var gold: int = 50
 var day: int = 1
 var shipped_items: Dictionary = {}
+var energy: float = 100.0
+var max_energy: float = 100.0
 
 signal gold_changed(new_gold: int)
 signal day_changed(new_day: int)
+signal energy_changed(current: float, max_val: float)
 
 var forecast_rain: bool
 var unlocked_styles: Array = [Enum.Style.BASIC, Enum.Style.ENGLISH]
@@ -143,6 +146,10 @@ func change_gold(amount: int) -> void:
 func set_day(new_day: int) -> void:
 	day = new_day
 	day_changed.emit(day)
+
+func change_energy(amount: float) -> void:
+	energy = clampf(energy + amount, 0.0, max_energy)
+	energy_changed.emit(energy, max_energy)
 
 func deposit_shipping_item(item: Enum.Item, amount: int = 1) -> bool:
 	if items.get(item, 0) < amount or amount <= 0:
