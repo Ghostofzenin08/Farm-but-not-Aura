@@ -1,7 +1,7 @@
 extends CharacterBody2D
 
 var direction: Vector2
-var last_direction: Vector2
+var last_direction: Vector2 = Vector2.DOWN
 var speed := 50
 var can_move: bool = true
 @onready var move_state_machine = $Animation/AnimationTree.get("parameters/MoveStateMachine/playback")
@@ -46,8 +46,7 @@ func _physics_process(_delta: float) -> void:
 			get_shopping_input()
 	if direction:
 		last_direction = direction
-		var ray_y = int(direction.y) if not direction.x else 0
-		$RayCast2D.target_position = Vector2(direction.x,ray_y).normalized() * 20
+		$RayCast2D.target_position = direction.normalized() * 20
 		
 		if not $Sounds/StepTimer.time_left:
 			$Sounds/StepTimer.start()
@@ -67,11 +66,12 @@ func get_basic_input():
 		$ToolUI.reveal(false)
 	
 	if Input.is_action_just_pressed("action"):
-		if not $RayCast2D.get_collider():
+		var collider = $RayCast2D.get_collider()
+		if collider and collider.has_method("interact"):
+			collider.interact(self)
+		else:
 			tool_state_machine.travel(Data.TOOL_STATE_ANIMATIONS[current_tool])
 			$Animation/AnimationTree.set("parameters/ToolOneShot/request", AnimationNodeOneShot.ONE_SHOT_REQUEST_FIRE)
-		else:
-			$RayCast2D.get_collider().interact(self)
 	
 	if Input.is_action_just_pressed("diagnose"):
 		diagnose.emit()
@@ -163,10 +163,9 @@ func day_change_emit():
 
 func get_machine_coord() -> Vector2i:
 	var pos = position + last_direction * 20 + Vector2(0,8)
-	var coord = Vector2i(pos.x / Data.TILE_SIZE, pos.y / Data.TILE_SIZE)
-	coord.x += -1 if pos.x < 0 else 0
-	coord.y += -1 if pos.y < 0 else 0
-	return coord * Data.TILE_SIZE + Vector2i(8,8)
+	var tile_x = int(floor(pos.x / float(Data.TILE_SIZE)))
+	var tile_y = int(floor(pos.y / float(Data.TILE_SIZE)))
+	return Vector2i(tile_x, tile_y) * Data.TILE_SIZE + Vector2i(8,8)
 
 
 func _on_step_timer_timeout() -> void:
