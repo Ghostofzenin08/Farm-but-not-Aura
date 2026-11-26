@@ -26,13 +26,17 @@ func interact(player_character: CharacterBody2D):
 	
 	# face the player
 	var raw_dir = (player_character.position - position).normalized()
-	var dir = Vector2i(round(raw_dir.x), round(raw_dir.y))
+	var dir = Vector2i.DOWN
+	if abs(raw_dir.x) > abs(raw_dir.y):
+		dir = Vector2i.RIGHT if raw_dir.x > 0 else Vector2i.LEFT
+	else:
+		dir = Vector2i.DOWN if raw_dir.y > 0 else Vector2i.UP
 	$Sprite2D.frame_coords.y = {
 		Vector2i.DOWN: 0,
 		Vector2i.LEFT: 1,
 		Vector2i.RIGHT: 2,
 		Vector2i.UP: 3,
-	}[dir]
+	}.get(dir, 0)
 	
 	# dialog 
 	$Dialog.show()
