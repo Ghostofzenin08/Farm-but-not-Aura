@@ -44,7 +44,7 @@ func interact(player_character: CharacterBody2D):
 		$Dialog.set_text(dialog[dialog_index])
 		dialog_index += 1
 	else:
-		if Data.shop_connection[shop_type]['tracker'].size() == Data.shop_connection[shop_type]['all'].size():
+		if Data.shop_connection.has(shop_type) and Data.shop_connection[shop_type]['tracker'].size() == Data.shop_connection[shop_type]['all'].size():
 			$Dialog.set_text(fin_dialog)
 			if has_fin_animation:
 				var tween = create_tween()
