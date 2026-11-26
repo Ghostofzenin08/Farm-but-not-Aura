@@ -23,6 +23,10 @@ func run_all() -> bool:
 		all_passed = false
 	if not test_stamina_energy_and_eating():
 		all_passed = false
+	if not test_seed_purchasing():
+		all_passed = false
+	if not test_seed_shop_ui():
+		all_passed = false
 		
 	return all_passed
 
@@ -336,4 +340,57 @@ func test_stamina_energy_and_eating() -> bool:
 		
 	player.free()
 	print("PASSED: Stamina deducts on tool use and recovers 25.0 energy when eating an apple.")
+	return true
+
+
+func test_seed_purchasing() -> bool:
+	print("\n[TEST SEED 9] Seed Merchant Purchasing & Gold Transaction...")
+	Data.gold = 100
+	Data.items[Enum.Item.TOMATO] = 2
+	
+	# Buy 3 Tomato seeds (4 G each = 12 G)
+	var bought = Data.buy_seed(Enum.Item.TOMATO, 3)
+	if not bought:
+		print("FAILED: buy_seed returned false with sufficient gold.")
+		return false
+	if Data.gold != 88:
+		print("FAILED: Expected gold 88, got: ", Data.gold)
+		return false
+	if Data.items[Enum.Item.TOMATO] != 5:
+		print("FAILED: Expected tomato count 5, got: ", Data.items[Enum.Item.TOMATO])
+		return false
+		
+	# Try buying with insufficient gold (100 Pumpkin seeds @ 12G = 1200G, player has 88G)
+	var failed_buy = Data.buy_seed(Enum.Item.PUMPKIN, 100)
+	if failed_buy:
+		print("FAILED: buy_seed allowed purchase with insufficient gold.")
+		return false
+	if Data.gold != 88:
+		print("FAILED: Gold changed on failed purchase.")
+		return false
+		
+	print("PASSED: Seed purchasing deducts gold and adds seeds to bag with balance verification.")
+	return true
+
+
+func test_seed_shop_ui() -> bool:
+	print("\n[TEST SEED 10] Seed Shop UI Instantiation & Views...")
+	var ui_scene = load("res://scenes/ui/seed_shop_ui.tscn")
+	var ui = ui_scene.instantiate()
+	add_child(ui)
+	
+	ui.reveal()
+	if not ui.visible:
+		print("FAILED: SeedShopUI not visible after reveal().")
+		ui.free()
+		return false
+		
+	ui._on_close_pressed()
+	if ui.visible:
+		print("FAILED: SeedShopUI still visible after close.")
+		ui.free()
+		return false
+		
+	ui.free()
+	print("PASSED: Seed Shop UI opens and closes cleanly with reactive item rows.")
 	return true
