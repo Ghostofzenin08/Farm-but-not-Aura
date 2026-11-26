@@ -34,11 +34,8 @@ func grow(sprite: Sprite2D):
 	death_count = 0
 
 
-func decay(plant: StaticBody2D):
+func decay(_plant: StaticBody2D):
 	death_count += 1
-	if death_count >= death_max:
-		emit_changed()
-		plant.queue_free()
 
 
 func get_complete():
