@@ -120,10 +120,14 @@ var day: int = 1
 var shipped_items: Dictionary = {}
 var energy: float = 100.0
 var max_energy: float = 100.0
+var tutorial_step: int = 0
+var tutorial_completed: bool = false
 
 signal gold_changed(new_gold: int)
 signal day_changed(new_day: int)
 signal energy_changed(current: float, max_val: float)
+signal tutorial_step_advanced(new_step: int)
+signal tutorial_completed_signal
 
 var forecast_rain: bool
 var unlocked_styles: Array = [Enum.Style.BASIC, Enum.Style.ENGLISH]
@@ -154,6 +158,15 @@ func change_gold(amount: int) -> void:
 func set_day(new_day: int) -> void:
 	day = new_day
 	day_changed.emit(day)
+
+func advance_tutorial(step_done: int) -> void:
+	if tutorial_completed or step_done != tutorial_step:
+		return
+	tutorial_step += 1
+	if tutorial_step >= 8:
+		tutorial_completed = true
+		tutorial_completed_signal.emit()
+	tutorial_step_advanced.emit(tutorial_step)
 
 func change_energy(amount: float) -> void:
 	energy = clampf(energy + amount, 0.0, max_energy)
