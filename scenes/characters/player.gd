@@ -38,6 +38,29 @@ signal machine_change(current_machine: Enum.Machine)
 signal close_shop
 signal help_requested
 
+var camera_trauma: float = 0.0
+var max_camera_offset: float = 4.0
+var trauma_decay: float = 2.5
+
+func _ready() -> void:
+	Data.camera_shake_requested.connect(add_camera_shake)
+
+
+func add_camera_shake(amount: float) -> void:
+	camera_trauma = clampf(camera_trauma + amount, 0.0, 1.0)
+
+
+func _process(delta: float) -> void:
+	if camera_trauma > 0.0:
+		camera_trauma = maxf(camera_trauma - trauma_decay * delta, 0.0)
+		var shake = camera_trauma * camera_trauma
+		var offset_x = randf_range(-1.0, 1.0) * max_camera_offset * shake
+		var offset_y = randf_range(-1.0, 1.0) * max_camera_offset * shake
+		$Camera2D.offset = Vector2(offset_x, offset_y)
+	elif $Camera2D.offset != Vector2.ZERO:
+		$Camera2D.offset = Vector2.ZERO
+
+
 func _physics_process(_delta: float) -> void:
 	match current_state:
 		Enum.State.DEFAULT:
@@ -180,6 +203,10 @@ func eat_apple() -> bool:
 	if Data.items.get(Enum.Item.APPLE, 0) > 0 and Data.energy < Data.max_energy:
 		Data.change_item(Enum.Item.APPLE, -1)
 		Data.change_energy(25.0)
+		Data.spawn_floating_text("+25 Energy", position + Vector2(0, -20), Color(0.25, 0.9, 0.35))
+		if has_node("Sounds/Eat"):
+			$Sounds/Eat.pitch_scale = randf_range(0.9, 1.1)
+			$Sounds/Eat.play()
 		if Data.tutorial_step == 5:
 			Data.advance_tutorial(5)
 		return true
