@@ -36,11 +36,15 @@ func _on_player_tool_use(tool: Enum.Tool, pos: Vector2) -> void:
 			var cell = $Layers/GrassLayer.get_cell_tile_data(grid_coord) as TileData
 			if cell and cell.get_custom_data('farmable'):
 				$Layers/SoilLayer.set_cells_terrain_connect([grid_coord], 0, 0)
+				if Data.tutorial_step == 2:
+					Data.advance_tutorial(2)
 			if raining:
 				$Layers/SoilWaterLayer.set_cell(grid_coord, 0, Vector2i(randi_range(0,2),0))
 		Enum.Tool.WATER:
 			if has_soil:
 				$Layers/SoilWaterLayer.set_cell(grid_coord, 0, Vector2i(randi_range(0,2),0))
+				if Data.tutorial_step == 3:
+					Data.advance_tutorial(3)
 		Enum.Tool.FISH:
 			if not grid_coord in $Layers/GrassLayer.get_used_cells():
 				$Objects/Player.start_fishing()
@@ -64,6 +68,8 @@ func _on_player_tool_use(tool: Enum.Tool, pos: Vector2) -> void:
 					var plant_info = plant_info_scene.instantiate()
 					plant_info.setup(plant_res)
 					$Overlay/CanvasLayer/PlantInfoContainer.add(plant_info)
+					if Data.tutorial_step == 4:
+						Data.advance_tutorial(4)
 				
 		Enum.Tool.AXE, Enum.Tool.SWORD:
 			for object in get_tree().get_nodes_in_group('Objects'):
@@ -133,6 +139,8 @@ func _on_player_close_shop() -> void:
 
 
 func open_shipping_bin() -> void:
+	if Data.tutorial_step == 6:
+		Data.advance_tutorial(6)
 	var shipping_ui = $Overlay/CanvasLayer.get_node_or_null("ShippingBinUI")
 	if shipping_ui:
 		shipping_ui.reveal()
@@ -162,6 +170,17 @@ func _ready() -> void:
 	var seed_ui = $Overlay/CanvasLayer.get_node_or_null("SeedShopUI")
 	if seed_ui and not seed_ui.close.is_connected(_on_seed_shop_close):
 		seed_ui.close.connect(_on_seed_shop_close)
+	
+	player.help_requested.connect(open_tutorial_guide)
+	var guide_ui = $Overlay/CanvasLayer.get_node_or_null("TutorialGuideUI")
+	if guide_ui and not guide_ui.close.is_connected(_on_tutorial_guide_close):
+		guide_ui.close.connect(_on_tutorial_guide_close)
+	var quest_hud = $Overlay/CanvasLayer.get_node_or_null("TutorialQuestHUD")
+	if quest_hud and not quest_hud.guide_requested.is_connected(open_tutorial_guide):
+		quest_hud.guide_requested.connect(open_tutorial_guide)
+	var status_hud = $Overlay/CanvasLayer.get_node_or_null("StatusHUD")
+	if status_hud and not status_hud.guide_requested.is_connected(open_tutorial_guide):
+		status_hud.guide_requested.connect(open_tutorial_guide)
 
 
 func _process(_delta: float) -> void:
@@ -186,6 +205,8 @@ func day_restart():
 	await tween.finished
 	
 	var settlement = Data.settle_daily_shipment()
+	if Data.tutorial_step == 7:
+		Data.advance_tutorial(7)
 	Data.set_day(Data.day + 1)
 	level_reset()
 	SaveManager.save_game(self)
@@ -273,4 +294,18 @@ func _on_seed_shop_close():
 	var seed_ui = $Overlay/CanvasLayer.get_node_or_null("SeedShopUI")
 	if seed_ui:
 		seed_ui.hide()
+	player.current_state = Enum.State.DEFAULT
+
+
+func open_tutorial_guide():
+	var guide_ui = $Overlay/CanvasLayer.get_node_or_null("TutorialGuideUI")
+	if guide_ui:
+		guide_ui.reveal()
+		player.current_state = Enum.State.SHOP
+
+
+func _on_tutorial_guide_close():
+	var guide_ui = $Overlay/CanvasLayer.get_node_or_null("TutorialGuideUI")
+	if guide_ui:
+		guide_ui.hide()
 	player.current_state = Enum.State.DEFAULT
