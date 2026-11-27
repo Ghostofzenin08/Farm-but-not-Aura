@@ -1,13 +1,18 @@
 extends Control
 
+signal guide_requested
+
 @onready var day_label: Label = $MarginContainer/PanelContainer/HBoxContainer/DayLabel
 @onready var gold_label: Label = $MarginContainer/PanelContainer/HBoxContainer/GoldLabel
 @onready var energy_label: Label = $MarginContainer/PanelContainer/HBoxContainer/EnergyLabel
+@onready var help_button: Button = $MarginContainer/PanelContainer/HBoxContainer/HelpButton
 
 func _ready() -> void:
 	Data.day_changed.connect(_on_day_changed)
 	Data.gold_changed.connect(_on_gold_changed)
 	Data.energy_changed.connect(_on_energy_changed)
+	if help_button:
+		help_button.pressed.connect(func(): guide_requested.emit())
 	update_display()
 
 
