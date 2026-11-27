@@ -42,7 +42,7 @@ func _ready() -> void:
 	var econ_test = econ_test_script.new()
 	add_child(econ_test)
 	if econ_test.run_all():
-		passed += 12
+		passed += 14
 	else:
 		failed += 1
 	econ_test.free()
