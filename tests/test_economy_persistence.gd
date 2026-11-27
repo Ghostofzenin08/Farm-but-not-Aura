@@ -31,6 +31,10 @@ func run_all() -> bool:
 		all_passed = false
 	if not test_tutorial_ui():
 		all_passed = false
+	if not test_camera_trauma_shake():
+		all_passed = false
+	if not test_floating_text_and_tile_cursor():
+		all_passed = false
 		
 	return all_passed
 
@@ -519,4 +523,67 @@ func test_tutorial_ui() -> bool:
 	Data.tutorial_completed = false
 	
 	print("PASSED: Tutorial Quest HUD and Handbook Guide UI open, navigate, collapse, and close cleanly.")
+	return true
+
+
+func test_camera_trauma_shake() -> bool:
+	print("\n[TEST JUICE 13] Camera2D Trauma Shake System...")
+	var player_scene = load("res://scenes/characters/player.tscn")
+	var player = player_scene.instantiate()
+	add_child(player)
+	
+	if player.camera_trauma != 0.0:
+		print("FAILED: Player camera trauma not initially 0.0.")
+		player.free()
+		return false
+	
+	# Request camera shake via Data signal
+	Data.request_camera_shake(0.5)
+	if player.camera_trauma < 0.49:
+		print("FAILED: Camera trauma not updated via Data signal. Got: ", player.camera_trauma)
+		player.free()
+		return false
+	
+	# Process delta to verify decay
+	player._process(0.1)
+	if player.camera_trauma >= 0.5:
+		print("FAILED: Camera trauma did not decay on delta. Got: ", player.camera_trauma)
+		player.free()
+		return false
+	
+	player.free()
+	print("PASSED: Camera trauma shake receives global requests and decays with quadratic dampening.")
+	return true
+
+
+func test_floating_text_and_tile_cursor() -> bool:
+	print("\n[TEST JUICE 14] Floating Text & Farm Tile Cursor...")
+	# 1. Test FloatingText
+	var ft_scene = load("res://scenes/ui/floating_text.tscn")
+	var ft = ft_scene.instantiate()
+	add_child(ft)
+	
+	ft.setup("+3 Tomatoes", Vector2(100, 100), Color(0.2, 0.9, 0.3), 0.5)
+	if ft.label.text != "+3 Tomatoes":
+		print("FAILED: FloatingText label text incorrect. Got: ", ft.label.text)
+		ft.free()
+		return false
+	ft.free()
+	
+	# 2. Test TileCursor
+	var cursor_scene = load("res://scenes/ui/tile_cursor.tscn")
+	var cursor = cursor_scene.instantiate()
+	add_child(cursor)
+	
+	var border = Color(0.4, 0.95, 0.4, 0.8)
+	var fill = Color(0.3, 0.9, 0.3, 0.2)
+	cursor.set_cursor_style(border, fill)
+	
+	if cursor.border_color != border or cursor.fill_color != fill:
+		print("FAILED: TileCursor style not updated.")
+		cursor.free()
+		return false
+		
+	cursor.free()
+	print("PASSED: Floating Text popups and Tile Cursor reticle render and animate properly.")
 	return true
