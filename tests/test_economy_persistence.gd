@@ -27,6 +27,10 @@ func run_all() -> bool:
 		all_passed = false
 	if not test_seed_shop_ui():
 		all_passed = false
+	if not test_tutorial_progression():
+		all_passed = false
+	if not test_tutorial_ui():
+		all_passed = false
 		
 	return all_passed
 
@@ -196,6 +200,8 @@ func test_save_load_roundtrip() -> bool:
 	Data.set_day(4)
 	Data.gold = 350
 	Data.energy = 72.0
+	Data.tutorial_step = 3
+	Data.tutorial_completed = false
 	Data.items[Enum.Item.APPLE] = 12
 	Data.items[Enum.Item.WOOD] = 40
 	Data.deposit_shipping_item(Enum.Item.APPLE, 2)
@@ -221,6 +227,8 @@ func test_save_load_roundtrip() -> bool:
 	Data.set_day(99)
 	Data.gold = 0
 	Data.energy = 0.0
+	Data.tutorial_step = 0
+	Data.tutorial_completed = true
 	Data.items[Enum.Item.APPLE] = 0
 	Data.items[Enum.Item.WOOD] = 0
 	Data.shipped_items.clear()
@@ -245,6 +253,11 @@ func test_save_load_roundtrip() -> bool:
 		
 	if Data.energy != 72.0:
 		print("FAILED: Energy not restored. Expected 72.0, got: ", Data.energy)
+		level.free()
+		return false
+		
+	if Data.tutorial_step != 3 or Data.tutorial_completed != false:
+		print("FAILED: Tutorial state not restored. Expected step 3, not completed; got: ", Data.tutorial_step, ", ", Data.tutorial_completed)
 		level.free()
 		return false
 		
@@ -393,4 +406,117 @@ func test_seed_shop_ui() -> bool:
 		
 	ui.free()
 	print("PASSED: Seed Shop UI opens and closes cleanly with reactive item rows.")
+	return true
+
+
+func test_tutorial_progression() -> bool:
+	print("\n[TEST TUTORIAL 11] Tutorial State Machine & Progression...")
+	Data.tutorial_step = 0
+	Data.tutorial_completed = false
+	
+	# Trying to advance out-of-order should do nothing
+	Data.advance_tutorial(3)
+	if Data.tutorial_step != 0 or Data.tutorial_completed:
+		print("FAILED: Advance tutorial out-of-order modified state. Expected step 0, got: ", Data.tutorial_step)
+		return false
+	
+	# Advance step 0 -> step 1
+	Data.advance_tutorial(0)
+	if Data.tutorial_step != 1 or Data.tutorial_completed:
+		print("FAILED: Step 0 did not advance to step 1. Got: ", Data.tutorial_step)
+		return false
+	
+	# Sequentially advance steps 1 through 6
+	for s in range(1, 7):
+		Data.advance_tutorial(s)
+		if Data.tutorial_step != s + 1:
+			print("FAILED: Step %d did not advance to %d. Got: %d" % [s, s + 1, Data.tutorial_step])
+			return false
+	
+	if Data.tutorial_step != 7 or Data.tutorial_completed:
+		print("FAILED: Expected step 7 and not completed before final step. Got: ", Data.tutorial_step)
+		return false
+		
+	# Complete final step 7 (rest in bed)
+	Data.advance_tutorial(7)
+	if Data.tutorial_step != 8 or not Data.tutorial_completed:
+		print("FAILED: Final step 7 did not mark tutorial completed. Step: %d, Completed: %s" % [Data.tutorial_step, Data.tutorial_completed])
+		return false
+		
+	# Further calls should be ignored
+	Data.advance_tutorial(8)
+	if Data.tutorial_step != 8:
+		print("FAILED: Step advanced beyond 8.")
+		return false
+		
+	print("PASSED: Tutorial advances sequentially and marks completion at final step.")
+	return true
+
+
+func test_tutorial_ui() -> bool:
+	print("\n[TEST TUTORIAL 12] Tutorial Quest HUD & Handbook Guide UI...")
+	# 1. Test TutorialQuestHUD
+	Data.tutorial_step = 2
+	Data.tutorial_completed = false
+	var quest_scene = load("res://scenes/ui/tutorial_quest_hud.tscn")
+	var quest_hud = quest_scene.instantiate()
+	add_child(quest_hud)
+	
+	if not quest_hud.title_label.text.contains("Till"):
+		print("FAILED: Quest HUD title does not reflect step 2. Text: ", quest_hud.title_label.text)
+		quest_hud.free()
+		return false
+	
+	quest_hud._toggle_collapse()
+	if quest_hud.content_box.visible:
+		print("FAILED: Quest HUD content still visible after collapse.")
+		quest_hud.free()
+		return false
+		
+	quest_hud._toggle_collapse()
+	if not quest_hud.content_box.visible:
+		print("FAILED: Quest HUD content not restored after expand.")
+		quest_hud.free()
+		return false
+		
+	quest_hud.free()
+	
+	# 2. Test TutorialGuideUI
+	var guide_scene = load("res://scenes/ui/tutorial_guide_ui.tscn")
+	var guide_ui = guide_scene.instantiate()
+	add_child(guide_ui)
+	
+	guide_ui.reveal()
+	if not guide_ui.visible or guide_ui.current_page != 0:
+		print("FAILED: TutorialGuideUI not visible or not on page 0 after reveal().")
+		guide_ui.free()
+		return false
+		
+	guide_ui._on_next_pressed()
+	if guide_ui.current_page != 1:
+		print("FAILED: Guide did not advance to page 1. Got: ", guide_ui.current_page)
+		guide_ui.free()
+		return false
+		
+	guide_ui._on_prev_pressed()
+	if guide_ui.current_page != 0:
+		print("FAILED: Guide did not return to page 0. Got: ", guide_ui.current_page)
+		guide_ui.free()
+		return false
+		
+	var close_emitted = [false]
+	guide_ui.close.connect(func(): close_emitted[0] = true)
+	guide_ui._on_close_pressed()
+	if guide_ui.visible or not close_emitted[0]:
+		print("FAILED: GuideUI close did not hide or emit close signal. visible=%s, emitted=%s" % [guide_ui.visible, close_emitted[0]])
+		guide_ui.free()
+		return false
+		
+	guide_ui.free()
+	
+	# Reset tutorial state for fresh game
+	Data.tutorial_step = 0
+	Data.tutorial_completed = false
+	
+	print("PASSED: Tutorial Quest HUD and Handbook Guide UI open, navigate, collapse, and close cleanly.")
 	return true
