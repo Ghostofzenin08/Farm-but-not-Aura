@@ -2,6 +2,7 @@ extends Node2D
 
 var plant_scene = preload("res://scenes/objects/plant.tscn")
 var plant_info_scene = preload("res://scenes/ui/plant_info.tscn")
+var floating_text_scene = preload("res://scenes/ui/floating_text.tscn")
 var projectile_scene = preload("res://scenes/machines/projectile.tscn")
 var blob_scene = preload("res://scenes/objects/blob.tscn")
 var machine_scenes = {
@@ -36,6 +37,8 @@ func _on_player_tool_use(tool: Enum.Tool, pos: Vector2) -> void:
 			var cell = $Layers/GrassLayer.get_cell_tile_data(grid_coord) as TileData
 			if cell and cell.get_custom_data('farmable'):
 				$Layers/SoilLayer.set_cells_terrain_connect([grid_coord], 0, 0)
+				Data.request_camera_shake(0.12)
+				Data.spawn_floating_text("Tilled", Vector2(grid_coord * Data.TILE_SIZE) + Vector2(8, 8), Color(0.8, 0.7, 0.4))
 				if Data.tutorial_step == 2:
 					Data.advance_tutorial(2)
 			if raining:
@@ -43,6 +46,8 @@ func _on_player_tool_use(tool: Enum.Tool, pos: Vector2) -> void:
 		Enum.Tool.WATER:
 			if has_soil:
 				$Layers/SoilWaterLayer.set_cell(grid_coord, 0, Vector2i(randi_range(0,2),0))
+				Data.request_camera_shake(0.08)
+				Data.spawn_floating_text("Watered", Vector2(grid_coord * Data.TILE_SIZE) + Vector2(8, 8), Color(0.35, 0.8, 1.0))
 				if Data.tutorial_step == 3:
 					Data.advance_tutorial(3)
 		Enum.Tool.FISH:
@@ -64,6 +69,8 @@ func _on_player_tool_use(tool: Enum.Tool, pos: Vector2) -> void:
 					var plant = plant_scene.instantiate()
 					plant.setup(grid_coord, $Objects, plant_res, plant_death)
 					used_cells.append(grid_coord)
+					Data.request_camera_shake(0.1)
+					Data.spawn_floating_text("Planted", Vector2(grid_coord * Data.TILE_SIZE) + Vector2(8, 8), Color(0.5, 0.95, 0.35))
 					
 					var plant_info = plant_info_scene.instantiate()
 					plant_info.setup(plant_res)
@@ -181,6 +188,7 @@ func _ready() -> void:
 	var status_hud = $Overlay/CanvasLayer.get_node_or_null("StatusHUD")
 	if status_hud and not status_hud.guide_requested.is_connected(open_tutorial_guide):
 		status_hud.guide_requested.connect(open_tutorial_guide)
+	Data.floating_text_requested.connect(_on_floating_text_requested)
 
 
 func _process(_delta: float) -> void:
@@ -198,6 +206,38 @@ func _process(_delta: float) -> void:
 		$Overlay/MachinePreviewSprite.position = machine_pos + MACHINE_PREVIEW_TEXTURES[player.current_machine]['offset']
 		var is_valid = can_build_machine(player.current_machine, machine_tile)
 		$Overlay/MachinePreviewSprite.modulate = Color(0.4, 1.0, 0.4, 0.85) if is_valid else Color(1.0, 0.3, 0.3, 0.85)
+	
+	# tile cursor highlight
+	var show_tile_cursor = player.current_state == Enum.State.DEFAULT and player.current_tool in [Enum.Tool.HOE, Enum.Tool.WATER, Enum.Tool.SEED]
+	var tile_cursor = $Overlay.get_node_or_null("TileCursor")
+	if tile_cursor:
+		tile_cursor.visible = show_tile_cursor
+		if show_tile_cursor:
+			var target_pos = player.position + player.last_direction.normalized() * 16.0
+			var target_tile = Vector2i(floor(target_pos.x / 16.0), floor(target_pos.y / 16.0))
+			tile_cursor.position = Vector2(target_tile * 16)
+			
+			var grass_cell = $Layers/GrassLayer.get_cell_tile_data(target_tile)
+			var has_target_soil = target_tile in $Layers/SoilLayer.get_used_cells()
+			var has_target_water = target_tile in $Layers/SoilWaterLayer.get_used_cells()
+			
+			match player.current_tool:
+				Enum.Tool.HOE:
+					if grass_cell and grass_cell.get_custom_data('farmable') and not has_target_soil:
+						tile_cursor.set_cursor_style(Color(0.4, 0.95, 0.4, 0.8), Color(0.3, 0.9, 0.3, 0.2))
+					else:
+						tile_cursor.set_cursor_style(Color(0.9, 0.9, 0.9, 0.5), Color(1.0, 1.0, 1.0, 0.1))
+				Enum.Tool.WATER:
+					if has_target_soil and not has_target_water:
+						tile_cursor.set_cursor_style(Color(0.3, 0.75, 1.0, 0.85), Color(0.2, 0.6, 1.0, 0.25))
+					else:
+						tile_cursor.set_cursor_style(Color(0.5, 0.7, 0.9, 0.5), Color(0.4, 0.6, 0.9, 0.1))
+				Enum.Tool.SEED:
+					var has_plant = target_tile in used_cells
+					if has_target_soil and not has_plant:
+						tile_cursor.set_cursor_style(Color(0.95, 0.85, 0.3, 0.85), Color(0.9, 0.8, 0.2, 0.2))
+					else:
+						tile_cursor.set_cursor_style(Color(0.8, 0.8, 0.8, 0.4), Color(0.8, 0.8, 0.8, 0.1))
 
 func day_restart():
 	var tween = create_tween()
@@ -212,6 +252,7 @@ func day_restart():
 	SaveManager.save_game(self)
 	
 	if settlement.get("total", 0) > 0:
+		Data.spawn_floating_text("+%d G Earned!" % settlement.get("total", 0), player.position + Vector2(0, -25), Color(0.95, 0.85, 0.2))
 		var summary = $Overlay/CanvasLayer.get_node_or_null("DaySummaryUI")
 		if summary:
 			player.current_state = Enum.State.SHOP
@@ -309,3 +350,9 @@ func _on_tutorial_guide_close():
 	if guide_ui:
 		guide_ui.hide()
 	player.current_state = Enum.State.DEFAULT
+
+
+func _on_floating_text_requested(text: String, world_pos: Vector2, color: Color) -> void:
+	var ft = floating_text_scene.instantiate()
+	ft.setup(text, world_pos, color)
+	$Overlay.add_child(ft)
