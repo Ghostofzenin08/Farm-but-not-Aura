@@ -11,7 +11,10 @@ var health := 3:
 			shape.size = Vector2(12,6)
 			$CollisionShape2D.shape = shape
 			$CollisionShape2D.position.y = 8
-			Data.change_item(Enum.Item.WOOD, randi_range(2,4))
+			var wood_count = randi_range(2,4)
+			Data.change_item(Enum.Item.WOOD, wood_count)
+			Data.spawn_floating_text("+%d Wood" % wood_count, global_position + Vector2(0, -10), Color(0.85, 0.65, 0.35))
+			Data.request_camera_shake(0.35)
 
 
 func _ready() -> void:
@@ -24,6 +27,7 @@ func hit(tool: Enum.Tool):
 		$FlashSprite2D.flash()
 		get_apple()
 		health -= 1
+		Data.request_camera_shake(0.2)
 
 
 func create_apples(num: int):
@@ -40,6 +44,7 @@ func get_apple():
 	if $Apples.get_children():
 		$Apples.get_children().pick_random().queue_free()
 		Data.change_item(Enum.Item.APPLE)
+		Data.spawn_floating_text("+1 Apple", global_position + Vector2(0, -20), Color(0.95, 0.3, 0.3))
 
 
 var regrow_days := 0
