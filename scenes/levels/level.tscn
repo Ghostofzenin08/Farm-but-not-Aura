@@ -1,4 +1,4 @@
-[gd_scene load_steps=45 format=4 uid="uid://dkaf0otbgtrp5"]
+[gd_scene load_steps=46 format=4 uid="uid://dkaf0otbgtrp5"]
 
 [ext_resource type="Texture2D" uid="uid://b1cmu3aai85qc" path="res://graphics/tilesets/grass.png" id="1_bovvr"]
 [ext_resource type="Script" uid="uid://crdbsib38ohef" path="res://scenes/levels/level.gd" id="1_urvlt"]
@@ -29,6 +29,7 @@
 [ext_resource type="PackedScene" path="res://scenes/ui/seed_shop_ui.tscn" id="27_seedui"]
 [ext_resource type="PackedScene" path="res://scenes/ui/tutorial_quest_hud.tscn" id="28_questhud"]
 [ext_resource type="PackedScene" path="res://scenes/ui/tutorial_guide_ui.tscn" id="29_guideui"]
+[ext_resource type="PackedScene" path="res://scenes/ui/tile_cursor.tscn" id="30_tilecursor"]
 
 [sub_resource type="Gradient" id="Gradient_ouxo3"]
 offsets = PackedFloat32Array(0, 0.294849, 0.4777975, 1)
@@ -1303,6 +1304,8 @@ process_material = SubResource("ParticleProcessMaterial_8iyoh")
 
 [node name="MachinePreviewSprite" type="Sprite2D" parent="Overlay"]
 texture = ExtResource("18_qhnmj")
+
+[node name="TileCursor" parent="Overlay" instance=ExtResource("30_tilecursor")]
 
 [node name="Timers" type="Node" parent="."]
 
