@@ -33,7 +33,11 @@ func _on_collision_area_body_entered(body: Node2D) -> void:
 		return
 	if res.get_complete() and not res.dead:
 		res.dead = true
-		Data.change_item(res.reward, randi_range(2,4))
+		var harvest_qty = randi_range(2, 4)
+		Data.change_item(res.reward, harvest_qty)
+		var item_name = Enum.Item.keys()[res.reward].capitalize()
+		Data.spawn_floating_text("+%d %s" % [harvest_qty, item_name], global_position + Vector2(0, -12), Color(0.3, 0.95, 0.4))
+		Data.request_camera_shake(0.15)
 		death.emit(coord)
 		$FlashSprite2D.flash(0.2, 0.4, queue_free)
 
