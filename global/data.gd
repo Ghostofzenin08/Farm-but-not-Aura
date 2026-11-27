@@ -128,6 +128,8 @@ signal day_changed(new_day: int)
 signal energy_changed(current: float, max_val: float)
 signal tutorial_step_advanced(new_step: int)
 signal tutorial_completed_signal
+signal floating_text_requested(text: String, world_pos: Vector2, color: Color)
+signal camera_shake_requested(amount: float)
 
 var forecast_rain: bool
 var unlocked_styles: Array = [Enum.Style.BASIC, Enum.Style.ENGLISH]
@@ -171,6 +173,12 @@ func advance_tutorial(step_done: int) -> void:
 func change_energy(amount: float) -> void:
 	energy = clampf(energy + amount, 0.0, max_energy)
 	energy_changed.emit(energy, max_energy)
+
+func spawn_floating_text(text: String, world_pos: Vector2, color: Color = Color.WHITE) -> void:
+	floating_text_requested.emit(text, world_pos, color)
+
+func request_camera_shake(amount: float) -> void:
+	camera_shake_requested.emit(amount)
 
 func buy_seed(item: Enum.Item, count: int = 1) -> bool:
 	var unit_price: int = SEED_BUY_PRICES.get(item, 0)
