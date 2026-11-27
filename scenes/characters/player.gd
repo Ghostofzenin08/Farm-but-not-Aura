@@ -36,6 +36,7 @@ signal day_change
 signal build(current_machine: Enum.Machine)
 signal machine_change(current_machine: Enum.Machine)
 signal close_shop
+signal help_requested
 
 func _physics_process(_delta: float) -> void:
 	match current_state:
@@ -68,6 +69,8 @@ func get_basic_input():
 		current_tool = posmod(current_tool + int(dir), Enum.Tool.size()) as Enum.Tool
 		$ToolUI.reveal(true)
 		get_tree().get_first_node_in_group("ResourceUI").visible = current_tool == Enum.Tool.SEED
+		if Data.tutorial_step == 1 and current_tool == Enum.Tool.HOE:
+			Data.advance_tutorial(1)
 	
 	if Input.is_action_just_pressed("seed_forward"):
 		current_seed = posmod(current_seed + 1, Enum.Seed.size()) as Enum.Seed
@@ -88,6 +91,9 @@ func get_basic_input():
 	
 	if Input.is_action_just_pressed("eat"):
 		eat_apple()
+
+	if Input.is_action_just_pressed("help"):
+		help_requested.emit()
 	
 	if Input.is_action_just_pressed("diagnose"):
 		diagnose.emit()
@@ -133,6 +139,8 @@ func move():
 	var current_speed = speed * 0.55 if Data.energy <= 0.0 else speed
 	velocity = direction * current_speed
 	move_and_slide()
+	if Data.tutorial_step == 0 and velocity.length_squared() > 1.0:
+		Data.advance_tutorial(0)
 
 
 func animate():
@@ -172,6 +180,8 @@ func eat_apple() -> bool:
 	if Data.items.get(Enum.Item.APPLE, 0) > 0 and Data.energy < Data.max_energy:
 		Data.change_item(Enum.Item.APPLE, -1)
 		Data.change_energy(25.0)
+		if Data.tutorial_step == 5:
+			Data.advance_tutorial(5)
 		return true
 	return false
 
