@@ -56,5 +56,9 @@ func _on_texture_progress_bar_value_changed(value: float) -> void:
 		hide()
 		if value >= 100:
 			Data.change_item(Enum.Item.FISH, 1)
+			Data.spawn_floating_text("+1 Fish!", global_position + Vector2(0, -20), Color(0.35, 0.75, 1.0))
+			Data.request_camera_shake(0.2)
+		else:
+			Data.spawn_floating_text("Escaped!", global_position + Vector2(0, -20), Color(0.85, 0.4, 0.4))
 		if get_parent() and get_parent().has_method("stop_fishing"):
 			get_parent().stop_fishing()
