@@ -52,6 +52,7 @@ func death():
 	speed = 0
 	remove_from_group("Blobs")
 	remove_from_group("Objects")
+	Data.request_camera_shake(0.45)
 	$AnimationPlayer.play("explode")
 
 
@@ -62,3 +63,8 @@ func hit(tool: Enum.Tool, dir = Vector2.ZERO):
 		$FlashSprite2D.flash()
 		push(dir)
 		health -= 1
+		Data.request_camera_shake(0.3)
+		Data.spawn_floating_text("-1", global_position + Vector2(0, -12), Color(1.0, 0.35, 0.2))
+		if has_node("AudioStreamPlayer2D"):
+			$AudioStreamPlayer2D.pitch_scale = randf_range(1.2, 1.4)
+			$AudioStreamPlayer2D.play()
