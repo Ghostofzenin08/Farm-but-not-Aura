@@ -121,6 +121,9 @@ func update_view() -> void:
 
 func _ship_item(item: Enum.Item, amount: int) -> void:
 	if Data.deposit_shipping_item(item, amount):
+		var price = Data.SHIPPING_PRICES.get(item, 0) * amount
+		Data.spawn_floating_text("+%d G value" % price, Vector2(160, 220), Color(0.95, 0.85, 0.2))
+		Data.request_camera_shake(0.08)
 		update_view()
 
 
